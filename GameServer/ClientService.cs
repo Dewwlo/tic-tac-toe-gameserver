@@ -69,7 +69,7 @@ namespace GameServer
                 case "GETGAMES": _client.Send(Encoding.ASCII.GetBytes(JsonConvert.SerializeObject(GameService.GetGameIds())));
                     break;
                 case "LEAVE":
-                    _client.Send(Encoding.ASCII.GetBytes("Leaving game"));
+                    _client.Send(Encoding.ASCII.GetBytes(JsonConvert.SerializeObject(new Command { CommandTerm = "LEAVE" })));
                     GameService.LeaveGame(_client, data);
                     break;
                 case "START":
