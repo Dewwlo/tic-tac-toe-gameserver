@@ -36,6 +36,11 @@ namespace GameServer
             return false;
         }
 
+        public static Game GetActiveGame(dynamic gameId)
+        {
+            return Games.SingleOrDefault(g => g.GameId == int.Parse(gameId) && g.IsRunning);
+        }
+
         public static List<int> GetGameIds()
         {
             return Games.Where(g => g.IsRunning == false).Select(g => g.GameId).ToList();

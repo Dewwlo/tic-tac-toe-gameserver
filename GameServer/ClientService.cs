@@ -51,17 +51,31 @@ namespace GameServer
 
         public void ExecuteCommand(string command, dynamic data)
         {
+            Game game;
             switch (command)
             {
                 case "CREATE": _client.Send(Encoding.ASCII.GetBytes(JsonConvert.SerializeObject(GameService.CreateGame(_client))));
                     break;
-                case "JOIN": _client.Send(Encoding.ASCII.GetBytes(JsonConvert.SerializeObject(GameService.JoinGame(_client, data))));
+                case "JOIN":
+                    bool result = GameService.JoinGame(_client, data);
+                    _client.Send(Encoding.ASCII.GetBytes(JsonConvert.SerializeObject(result)));
+                    if (result)
+                    {
+                        game = GameService.GetActiveGame(data);
+                        game.PlayerOne.Send(
+                            Encoding.ASCII.GetBytes(JsonConvert.SerializeObject(new Command {CommandTerm = "JOIN"})));
+                    }
                     break;
                 case "GETGAMES": _client.Send(Encoding.ASCII.GetBytes(JsonConvert.SerializeObject(GameService.GetGameIds())));
                     break;
                 case "LEAVE":
                     _client.Send(Encoding.ASCII.GetBytes("Leaving game"));
                     GameService.LeaveGame(_client, data);
+                    break;
+                case "START":
+                    game = GameService.GetActiveGame(data);
+                    game.PlayerOne.Send(Encoding.ASCII.GetBytes(JsonConvert.SerializeObject(new Command{ CommandTerm = "START" })));
+                    game.PlayerTwo.Send(Encoding.ASCII.GetBytes(JsonConvert.SerializeObject(new Command { CommandTerm = "START" })));
                     break;
             }
         }
