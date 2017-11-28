@@ -6,7 +6,7 @@ namespace GameServer
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            var server = new SocketServer();
         }
     }
 }
