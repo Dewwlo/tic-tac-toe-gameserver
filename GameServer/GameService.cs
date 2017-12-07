@@ -23,9 +23,9 @@ namespace GameServer
             return newGame.GameId;
         }
 
-        public static bool JoinGame(Socket playerTwo, dynamic gameId)
+        public static bool JoinGame(Socket playerTwo, string gameId)
         {
-            var game = Games.SingleOrDefault(g => g.GameId == gameId);
+            var game = Games.SingleOrDefault(g => g.GameId == int.Parse(gameId));
 
             if (game != null && game.PlayerTwo == null)
             {
@@ -36,7 +36,7 @@ namespace GameServer
             return false;
         }
 
-        public static Game GetActiveGame(dynamic gameId)
+        public static Game GetActiveGame(string gameId)
         {
             return Games.SingleOrDefault(g => g.GameId == int.Parse(gameId) && g.IsRunning);
         }
@@ -46,9 +46,9 @@ namespace GameServer
             return Games.Where(g => g.IsRunning == false).Select(g => g.GameId).ToList();
         }
 
-        public static void LeaveGame(Socket player, dynamic gameId)
+        public static void LeaveGame(Socket player, string gameId)
         {
-            var game = Games.SingleOrDefault(g => g.GameId == gameId);
+            var game = Games.SingleOrDefault(g => g.GameId == int.Parse(gameId));
             if (game != null)
             {
                 if (game.PlayerOne == player)

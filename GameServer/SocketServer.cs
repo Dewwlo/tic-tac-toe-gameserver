@@ -26,7 +26,6 @@ namespace GameServer
                 var client = _socket.Accept();
                 var clientService = new ClientService(client);
                 SocketService.ConnectedEndpoints.Add(client);
-                //client.Send(Encoding.ASCII.GetBytes($"You are now connected to server {((IPEndPoint)_socket.LocalEndPoint).Address}"));
                 Console.WriteLine($"{client.LocalEndPoint} is now connected to the server -- Connected clients {SocketService.ConnectedEndpoints.Count}");
             }
         }
