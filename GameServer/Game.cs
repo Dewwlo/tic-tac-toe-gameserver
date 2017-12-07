@@ -12,5 +12,6 @@ namespace GameServer
         public Socket PlayerOne { get; set; }
         public Socket PlayerTwo { get; set; }
         public bool IsRunning => PlayerOne != null && PlayerTwo != null;
+        public bool IsStarted { get; set; }
     }
 }

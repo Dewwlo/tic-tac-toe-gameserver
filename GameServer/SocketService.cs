@@ -20,7 +20,7 @@ namespace GameServer
 
         private static IPEndPoint EndPoint()
         {
-            return new IPEndPoint(GetLocalIpAddress(), 8081);
+            return new IPEndPoint(GetLocalIpAddress(), 8080);
         }
 
         private static IPAddress GetLocalIpAddress()

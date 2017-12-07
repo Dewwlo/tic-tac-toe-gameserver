@@ -9,6 +9,7 @@ namespace GameServer
     public static class GameService
     {
         public static List<Game> Games = new List<Game>();
+        public static List<GameStatus> GameStatuses = new List<GameStatus>();
 
         public static int CreateGame(Socket playerOne)
         {

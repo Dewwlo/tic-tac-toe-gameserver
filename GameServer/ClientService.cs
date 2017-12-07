@@ -42,7 +42,8 @@ namespace GameServer
                 }
                 catch (Exception)
                 {
-                    GameService.Games.Where(g => g.PlayerOne == _client).ToList().ForEach(g => GameService.Games.Remove(g));
+                    GameService.Games.Where(g => g.PlayerOne == _client).ToList()
+                        .ForEach(g => GameService.Games.Remove(g));
                     SocketService.ConnectedEndpoints.Remove(_client);
                     _client.Close();
                 }
@@ -55,6 +56,7 @@ namespace GameServer
 
             GameService.Games.Where(g => g.PlayerOne == _client).ToList().ForEach(g => GameService.Games.Remove(g));
             SocketService.ConnectedEndpoints.Remove(_client);
+            Console.WriteLine($"A client has disconnected from the server -- Connected clients {SocketService.ConnectedEndpoints.Count}.");
             _client.Close();
         }
 
@@ -65,47 +67,70 @@ namespace GameServer
             {
                 case "CREATE":
                     SendToClient($"CREATE;{GameService.CreateGame(_client)}");
+                    PrintConsoleMessage(ConsoleColor.Blue, $"{_client.LocalEndPoint} Created a game.", null);
                     break;
                 case "JOIN":
                     var result = GameService.JoinGame(_client, data);
                     SendToClient($"JOIN;{result}");
                     if (!result) break;
-
+                    if (GameService.GetActiveGame(data).IsStarted)
+                        SendToClient(
+                            $"SENDGAMESTATUS;{JsonConvert.SerializeObject(GameService.GameStatuses.SingleOrDefault(g => g.GameId == int.Parse(data)))}");
                     game = GameService.GetActiveGame(data);
-                    SendToSocket(game.PlayerOne, $"OPPONENTJOIN;");
+                    SendToSocket(game.PlayerOne, "OPPONENTJOIN;");
+                    PrintConsoleMessage(ConsoleColor.Cyan, $"{_client.LocalEndPoint} Joined game {data}.", null);
                     break;
                 case "GETGAMES":
                     SendToClient($"GETGAMES;{JsonConvert.SerializeObject(GameService.GetGameIds())}");
+                    PrintConsoleMessage(ConsoleColor.Gray, $"{_client.LocalEndPoint} Requested game list.", null);
                     break;
                 case "LEAVE":
                     SendToClient("LEAVE;");
                     GameService.LeaveGame(_client, data);
+                    PrintConsoleMessage(ConsoleColor.Yellow, $"{_client.LocalEndPoint} Has left game {data}.", null);
                     break;
                 case "START":
                     game = GameService.GetActiveGame(data);
                     var newGame = InitGamePlay(game);
+                    GameService.GameStatuses.Add(newGame);
                     SendToSocket(game.PlayerOne, $"START;{JsonConvert.SerializeObject(newGame)}");
                     SendToSocket(game.PlayerTwo, $"START;{JsonConvert.SerializeObject(newGame)}");
+                    PrintConsoleMessage(ConsoleColor.Green, $"{_client.LocalEndPoint} Started game {data}.", null);
                     break;
                 case "TURN":
                     var gameStatus = JsonConvert.DeserializeObject<GameStatus>(data);
                     game = GameService.GetActiveGame(gameStatus.GameId.ToString());
                     game.ScoreGrid = gameStatus.Grid;
-                    SendToSocket(_client == game.PlayerOne ? game.PlayerTwo : game.PlayerOne, $"TURN;{JsonConvert.SerializeObject(gameStatus)}");
+                    GameService.GameStatuses.Remove(GameService.GameStatuses.Find(g => g.GameId == gameStatus.GameId));
+                    GameService.GameStatuses.Add(gameStatus);
+                    SendToSocket(_client == game.PlayerOne ? game.PlayerTwo : game.PlayerOne,
+                        $"TURN;{JsonConvert.SerializeObject(gameStatus)}");
+                    PrintConsoleMessage(ConsoleColor.White,
+                        $"{_client.LocalEndPoint} Played a round in game {game.GameId}.", null);
                     if (CheckVictoryCondition(gameStatus.Grid))
+                    {
                         GameOver(game.PlayerOne, game.PlayerTwo, gameStatus.Turn == "X" ? "O" : "X");
+                        PrintConsoleMessage(ConsoleColor.Magenta,
+                            $"{_client.LocalEndPoint} Has won game {game.GameId}!", null);
+                    }
+                    else if (gameStatus.Grid.Cast<string>().All(f => f != null))
+                    {
+                        GameOver(game.PlayerOne, game.PlayerTwo, null);
+                        PrintConsoleMessage(ConsoleColor.Magenta, $"{_client.LocalEndPoint} Game {game.GameId} ended with a draw.", null);
+                    }
                     break;
             }
         }
 
         public GameStatus InitGamePlay(Game game)
         {
-            return  new GameStatus
+            game.IsStarted = true;
+            return new GameStatus
             {
                 GameId = game.GameId,
                 Grid = game.ScoreGrid,
-                PlayerOne = new PlayerInfo { PlayerColor = "Red", PlayerSign = "X" },
-                PlayerTwo = new PlayerInfo { PlayerColor = "Blue", PlayerSign = "O" },
+                PlayerOne = new PlayerInfo {PlayerColor = "Red", PlayerSign = "X"},
+                PlayerTwo = new PlayerInfo {PlayerColor = "Blue", PlayerSign = "O"},
                 Turn = new Random().Next(1, 3) == 1 ? "X" : "O"
             };
         }
@@ -139,6 +164,15 @@ namespace GameServer
                 return args.Distinct().ToArray().Length == 1;
 
             return false;
+        }
+
+        public static void PrintConsoleMessage(ConsoleColor foreColor, string message, ConsoleColor? backColor)
+        {
+            Console.ForegroundColor = foreColor;
+            if (backColor != null)
+                Console.BackgroundColor = (ConsoleColor) backColor;
+            Console.WriteLine(message);
+            Console.ResetColor();
         }
     }
 }
